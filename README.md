@@ -4,6 +4,19 @@ Free data recovery for pendrives, SD/memory cards and USB drives, for **Windows 
 
 It **only reads** the pendrive. It never writes to it, so trying it cannot make things worse.
 
+## Download (no installation, no coding)
+
+| Your computer | Download |
+|---|---|
+| **Windows 10 / 11** (almost everyone) | **[Download PendriveRescue.exe](https://github.com/Addy199904/Pendrive-Rescue/releases/latest/download/PendriveRescue.exe)** |
+| Very old 32-bit Windows | [PendriveRescue-32bit.exe](https://github.com/Addy199904/Pendrive-Rescue/releases/latest/download/PendriveRescue-32bit.exe) |
+| Linux | [pendrive-rescue-linux](https://github.com/Addy199904/Pendrive-Rescue/releases/latest/download/pendrive-rescue-linux) |
+
+All versions are on the [Releases page](https://github.com/Addy199904/Pendrive-Rescue/releases/latest).
+
+**Three steps:** download the file, double-click it, press **Check this pendrive**. That's all.
+If Windows shows *"Windows protected your PC"*, click **More info** → **Run anyway** (the program is new and not yet signed, which makes Windows cautious; the source code is all in this repository).
+
 ---
 
 ## Before you start (important)
