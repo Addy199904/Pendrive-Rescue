@@ -1,0 +1,118 @@
+# Tests Pendrive Rescue on Linux and on a real Windows machine, then builds
+# the programs. On Windows it makes a small virtual pendrive (a FAT32 disk
+# image), checks that the volume lock stops Windows from writing to it, and
+# deletes files from it and gets them back by reading the raw disk. Signing
+# (last job) is optional and needs a SignPath account.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.24"
+      - run: go vet ./...
+      - run: GOOS=windows go vet ./...
+      - run: go test ./...
+      - name: Reads reach the device and never write (a real loop device; needs root)
+        run: sudo -E env "PATH=$PATH" go test ./internal/disk -run 'ReadOnly|WriteAccess' -v
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.24"
+      - run: go vet ./...
+      - run: go test ./...
+      - name: Make a test pendrive (a 256 MB FAT32 virtual disk on R:)
+        shell: pwsh
+        run: |
+          $vhd = Join-Path $env:RUNNER_TEMP 'pendrive.vhdx'
+          @(
+            "create vdisk file=`"$vhd`" maximum=256 type=expandable",
+            "attach vdisk",
+            "create partition primary",
+            "format fs=fat32 quick label=PDRTEST",
+            "assign letter=R"
+          ) | Set-Content -Path dp.txt -Encoding ascii
+          diskpart /s dp.txt
+          $n = (Get-Partition -DriveLetter R).DiskNumber
+          "PDR_TEST_DISK=\\.\PhysicalDrive$n" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "PDR_TEST_LETTER=R" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: The volume lock stops Windows from writing while Pendrive Rescue reads
+        run: go test ./internal/disk -run TestWindowsLock -v
+      - name: Deleted files come back, read from the raw disk
+        shell: pwsh
+        run: |
+          go build -o pdr.exe .
+          New-Item -ItemType Directory R:\DCIM | Out-Null
+          $hashes = @()
+          foreach ($i in 1..5) {
+            $b = New-Object byte[] (300000 + $i * 1000)
+            (New-Object Random($i)).NextBytes($b)
+            [IO.File]::WriteAllBytes("R:\DCIM\file$i.bin", $b)
+            $hashes += (Get-FileHash "R:\DCIM\file$i.bin").Hash
+          }
+          Remove-Item R:\DCIM\file*.bin
+          Write-VolumeCache R
+          ./pdr.exe --cli --source $env:PDR_TEST_DISK --out "$env:RUNNER_TEMP\out" --yes --no-image
+          $got = Get-ChildItem -Recurse -File "$env:RUNNER_TEMP\out" | ForEach-Object { (Get-FileHash $_.FullName).Hash }
+          $missing = @($hashes | Where-Object { $got -notcontains $_ })
+          if ($missing.Count -gt 0) { Write-Error "$($missing.Count) of 5 deleted files did not come back"; exit 1 }
+          Write-Output "All 5 deleted files came back byte for byte."
+
+  build:
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.24"
+      - name: Build
+        run: ./scripts/build.sh
+      - id: unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: PendriveRescue
+          path: dist/
+
+  # Signs the two Windows programs through SignPath Foundation, which signs
+  # open-source programs for free. It runs only after the project has been
+  # accepted and the repository has the variable SIGNPATH_ORGANIZATION_ID and
+  # the secret SIGNPATH_API_TOKEN (see "Signing the Windows programs" in
+  # README.md). Until then the build above is the result, unsigned.
+  sign:
+    needs: build
+    if: vars.SIGNPATH_ORGANIZATION_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'pendrive-rescue' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          github-artifact-id: ${{ needs.build.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+      - name: New checksums for the signed programs
+        run: cd signed && sha256sum PendriveRescue.exe PendriveRescue-32bit.exe pendrive-rescue-linux > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: PendriveRescue-signed
+          path: signed/

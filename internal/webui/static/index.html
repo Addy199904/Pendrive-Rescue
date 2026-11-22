@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Pendrive Rescue</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/serif-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/app.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="11" width="9.5" height="10" rx="1.6" class="plug"/><rect x="3.4" y="13.4" width="3.2" height="2" rx=".3" class="hole"/><rect x="3.4" y="16.6" width="3.2" height="2" rx=".3" class="hole"/><rect x="9" y="5" width="22" height="22" rx="5" class="board"/><rect x="13" y="9.5" width="6" height="6" rx="1.1" class="cell"/><rect x="21" y="9.5" width="6" height="6" rx="1.1" class="cell"/><rect x="13" y="17" width="6" height="6" rx="1.1" class="cell"/><rect x="21" y="17" width="6" height="6" rx="1.1" class="cell dim"/></svg>
+    <span>Pendrive Rescue</span>
+  </div>
+  <nav class="bar-acts">
+    <button class="quiet" id="new" type="button" hidden>Start over</button>
+    <button class="quiet" id="quit" type="button">Quit</button>
+  </nav>
+</header>
+<main id="chat" tabindex="-1" aria-label="Pendrive Rescue">
+  <div class="msg app"><p class="lead">Opening Pendrive Rescue…</p></div>
+</main>
+<footer class="composer" id="composer" aria-label="Next step"></footer>
+<div id="live" class="sr" aria-live="polite"></div>
+</body>
+</html>
