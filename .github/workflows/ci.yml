@@ -57,6 +57,9 @@ jobs:
         shell: pwsh
         run: |
           go build -o pdr.exe .
+          # A virtual disk turns TRIM into real zeros, which a real pendrive's
+          # deleted files never are; stop Windows sending TRIM for this test.
+          fsutil behavior set DisableDeleteNotify 1
           New-Item -ItemType Directory R:\DCIM | Out-Null
           $hashes = @()
           foreach ($i in 1..5) {
