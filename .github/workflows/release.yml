@@ -1,0 +1,40 @@
+# Publishes a GitHub Release when a version tag (v3.0, v3.1, ...) is pushed:
+# builds the Windows (64/32-bit) and Linux programs with scripts/build.sh and
+# attaches them, with SHA256SUMS.txt, the README and the font licence.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.24"
+      - run: go test ./...
+      - name: Build
+        run: ./scripts/build.sh
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cat > notes.md <<'EOF'
+          Free, read-only data recovery for pendrives, SD/memory cards and USB drives (Windows 10/11 and Linux).
+
+          **Windows:** download `PendriveRescue.exe` (or `PendriveRescue-32bit.exe` on old 32-bit Windows) and double-click it.
+          **Linux:** download `pendrive-rescue-linux`, then `chmod +x pendrive-rescue-linux && sudo ./pendrive-rescue-linux`.
+
+          Check your download against `SHA256SUMS.txt`. See the README for full instructions.
+          EOF
+          gh release create "$TAG" --title "Pendrive Rescue ${TAG#v}" --notes-file notes.md \
+            dist/PendriveRescue.exe dist/PendriveRescue-32bit.exe dist/pendrive-rescue-linux \
+            dist/SHA256SUMS.txt "dist/README.md" "dist/Font licence (OFL).txt"
