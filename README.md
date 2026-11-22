@@ -180,4 +180,6 @@ files, `internal/jpegfix` follows JPEG data to find, cut and rebuild damaged pho
 and writes the reports, `internal/webui` is the browser window, `internal/repair` repairs photos already copied, and `internal/sim`
 imitates failing pendrives for the tests.
 
+Pendrive Rescue is free software under the [MIT licence](LICENSE).
+
 The app's typefaces are DM Sans and Source Serif 4 (SIL Open Font License, see `internal/webui/static/fonts/OFL.txt`).
